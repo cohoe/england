@@ -80,7 +80,9 @@ class Import:
 
     @staticmethod
     def _import_recipe(filepath, db_conn, db_sess):
-        c = CocktailFactory.obj_from_file(filepath)
+        data = england.util.read_yaml_file(filepath)[0]
+        slug = england.util.get_slug_from_path(filepath)
+        c = CocktailFactory.raw_to_obj(data, slug)
         print("Working %s" % filepath)
 
         # Drop the data and reload

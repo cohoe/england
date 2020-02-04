@@ -1,7 +1,7 @@
 import argparse
 import sys
 from barbados.connectors import PostgresqlConnector
-from barbados.models.base import Base
+from barbados.objects import AppConfig
 
 
 class Initdb:
@@ -12,8 +12,11 @@ class Initdb:
         args = self._setup_args()
         self._validate_args(args)
 
-        conn = PostgresqlConnector()
-        Base.metadata.create_all(conn.engine)
+        conn = PostgresqlConnector(username='postgres', password='s3krAt', database='amari')
+        conn.create_all()
+
+        AppConfig.set('/jamaica/api/v1/cocktail_name_list_key', 'cocktail_name_index')
+        AppConfig.set('/jamaica/api/v1/ingredient_name_list_key', 'ingredient_name_index')
 
     @staticmethod
     def _setup_args():
