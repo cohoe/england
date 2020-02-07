@@ -16,15 +16,14 @@ class Import:
         args = self._setup_args()
         self._validate_args(args)
 
-        conn = PostgresqlConnector(username='postgres', password='s3krAt', database='amari')
-        sess = conn.Session()
+        sess = PostgresqlConnector(database='amari', username='postgres', password='s3krAt').Session()
 
         if args.object == 'recipe':
-            self._import_recipe(args.filepath, conn, sess)
+            self._import_recipe(args.filepath, sess)
         elif args.object == 'recipes':
             recipe_dir = args.filepath
             for filename in england.util.list_files(recipe_dir):
-                self._import_recipe("%s/%s" % (recipe_dir, filename), conn, sess)
+                self._import_recipe("%s/%s" % (recipe_dir, filename), sess)
         elif args.object == 'ingredients':
             data = england.util.read_yaml_file(args.filepath)
 
@@ -50,7 +49,8 @@ class Import:
                     else:
                         print("%s (p:%s) already exists as a %s (p:%s)" % (i.slug, i.parent, existing.type, existing.parent))
                 else:
-                    conn.save(db_obj)
+                    sess.add(db_obj)
+                    sess.commit()
 
             # Validate
             print("starting validation")
@@ -64,6 +64,8 @@ class Import:
                     print("Could not find parent %s for %s" % (ingredient.parent, ingredient.slug))
         else:
             exit(1)
+
+        IngredientModel.get_usable_ingredients(sess)
 
     @staticmethod
     def _setup_args():
@@ -79,7 +81,7 @@ class Import:
         pass
 
     @staticmethod
-    def _import_recipe(filepath, db_conn, db_sess):
+    def _import_recipe(filepath, db_sess):
         data = england.util.read_yaml_file(filepath)[0]
         slug = england.util.get_slug_from_path(filepath)
         c = CocktailFactory.raw_to_obj(data, slug)
@@ -94,5 +96,6 @@ class Import:
             db_sess.commit()
 
         db_obj = CocktailModel(**c.serialize())
-        db_conn.save(db_obj)
+        # db_conn.save(db_obj)
+        db_sess.save(db_obj)
         print("created new")
