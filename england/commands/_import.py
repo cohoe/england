@@ -16,21 +16,20 @@ class Import:
         args = self._setup_args()
         self._validate_args(args)
 
-        sess = PostgresqlConnector(database='amari', username='postgres', password='s3krAt').Session()
+        pgconn = PostgresqlConnector(database='amari', username='postgres', password='s3krAt')
 
         if args.object == 'recipe':
-            self._import_recipe(args.filepath, sess)
+            self._import_recipe(args.filepath)
         elif args.object == 'recipes':
             recipe_dir = args.filepath
             for filename in england.util.list_files(recipe_dir):
-                self._import_recipe("%s/%s" % (recipe_dir, filename), sess)
+                self._import_recipe("%s/%s" % (recipe_dir, filename))
         elif args.object == 'ingredients':
             data = england.util.read_yaml_file(args.filepath)
 
             # Drop the data and reload
             print("deleting old data")
-            deleted = sess.query(IngredientModel).delete()
-            sess.commit()
+            deleted = IngredientModel.query.delete()
             print(deleted)
 
             print("starting import")
@@ -39,7 +38,7 @@ class Import:
                 db_obj = IngredientModel(**i.serialize())
 
                 # Test for existing
-                existing = sess.query(IngredientModel).get(i.slug)
+                existing = IngredientModel.query.get(i.slug)
                 if existing:
                     if existing.type == IngredientTypes.CATEGORY.value or existing.type == IngredientTypes.FAMILY.value:
                         if i.type_ is IngredientTypes.INGREDIENT:
@@ -49,23 +48,23 @@ class Import:
                     else:
                         print("%s (p:%s) already exists as a %s (p:%s)" % (i.slug, i.parent, existing.type, existing.parent))
                 else:
-                    sess.add(db_obj)
-                    sess.commit()
+                    db_obj.save()
 
             # Validate
+            pgconn.commit()
             print("starting validation")
-            ingredients = sess.query(IngredientModel).all()
+            ingredients = IngredientModel.query.all()
             for ingredient in ingredients:
                 # find parent
                 if not ingredient.parent:
                     continue
-                parent = sess.query(IngredientModel).get(ingredient.parent)
+                parent = IngredientModel.query.get(ingredient.parent)
                 if not parent:
                     print("Could not find parent %s for %s" % (ingredient.parent, ingredient.slug))
         else:
             exit(1)
 
-        IngredientModel.get_usable_ingredients(sess)
+        IngredientModel.get_usable_ingredients()
 
     @staticmethod
     def _setup_args():
@@ -81,7 +80,7 @@ class Import:
         pass
 
     @staticmethod
-    def _import_recipe(filepath, db_sess):
+    def _import_recipe(filepath):
         data = england.util.read_yaml_file(filepath)[0]
         slug = england.util.get_slug_from_path(filepath)
         c = CocktailFactory.raw_to_obj(data, slug)
@@ -90,12 +89,11 @@ class Import:
         # Drop the data and reload
         print("deleting old data")
         # Test for existing
-        existing = db_sess.query(CocktailModel).get(c.slug)
+        existing = CocktailModel.query.get(c.slug)
         if existing:
-            db_sess.delete(existing)
-            db_sess.commit()
+            existing.delete()
 
         db_obj = CocktailModel(**c.serialize())
         # db_conn.save(db_obj)
-        db_sess.save(db_obj)
+        db_obj.save()
         print("created new")
