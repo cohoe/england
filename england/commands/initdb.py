@@ -1,7 +1,7 @@
 import argparse
 import sys
 from barbados.connectors import PostgresqlConnector
-from barbados.objects import AppConfig
+from barbados.services import AppConfig
 
 
 class Initdb:

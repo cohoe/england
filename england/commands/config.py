@@ -1,6 +1,6 @@
 import argparse
 import sys
-from barbados.objects import AppConfig
+from barbados.services import AppConfig
 
 
 class Config:
