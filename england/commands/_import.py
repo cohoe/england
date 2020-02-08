@@ -64,7 +64,8 @@ class Import:
                 if parent.type == IngredientTypes.ALIAS.value:
                     print("%s cannot be a child of an alias (%s)." % (ingredient.slug, parent.slug))
                 if parent.type == IngredientTypes.PRODUCT.value:
-                    print("%s cannot be a child of a product (%s)." % (ingredient.slug, parent.slug))
+                    if ingredient.type != IngredientTypes.PRODUCT.value:
+                        print("%s cannot be a child of a product (%s)." % (ingredient.slug, parent.slug))
         else:
             exit(1)
 
