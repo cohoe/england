@@ -3,6 +3,9 @@ import sys
 from barbados.connectors import ElasticsearchConnector
 from barbados.factories import CocktailFactory
 from barbados.constants import IngredientKinds
+from barbados.models import IngredientModel
+from barbados.connectors import PostgresqlConnector
+from barbados.exceptions import ValidationException
 import england.util
 import logging
 
@@ -18,13 +21,19 @@ class Validate:
         self._validate_args(args)
 
         print(args.path)
+        pgconn = PostgresqlConnector(database='amari', username='postgres', password='s3krAt')
 
         elements = self._load_yaml_data(path=args.path)
         cache = self._build_cache(elements)
 
         for element in elements:
             logging.info("Testing slug %s" % element['slug'])
-            self._validate_element(element, elements, cache)
+            # self._validate_element(element, elements, cache)
+            i = IngredientModel(**element)
+            try:
+                i.validate()
+            except ValidationException as e:
+                logging.error(e)
 
     def _validate_element(self, element, elements, cache):
         element = self._normalize_element(element)
@@ -49,7 +58,7 @@ class Validate:
         return element
 
     def _check_parent(self, element, cache):
-        self._check_parent_existence(element, cache)
+        # self._check_parent_existence(element, cache)
         self._check_parent_kind(element, cache)
 
     @staticmethod
@@ -81,14 +90,14 @@ class Validate:
             if parent['kind'] not in allowed_parent_kinds:
                 logging.error("Parent (%s) of %s has invalid kind (%s)." % (parent['slug'], element['slug'], parent['kind']))
 
-    @staticmethod
-    def _check_parent_existence(element, cache):
-        # Test if the parent exists at all
-        try:
-            parent = cache[element['parent']]
-        except KeyError:
-            if element['kind'] != IngredientKinds.CATEGORY.value:
-                logging.error("Parent of %s does not exist (%s)" % (element['slug'], element['parent']))
+    # @staticmethod
+    # def _check_parent_existence(element, cache):
+    #     # Test if the parent exists at all
+    #     try:
+    #         parent = cache[element['parent']]
+    #     except KeyError:
+    #         if element['kind'] != IngredientKinds.CATEGORY.value:
+    #             logging.error("Parent of %s does not exist (%s)" % (element['slug'], element['parent']))
 
     @staticmethod
     def _build_cache(elements):
