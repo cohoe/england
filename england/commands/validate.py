@@ -6,7 +6,7 @@ from barbados.constants import IngredientTypes
 import england.util
 import logging
 
-logging.basicConfig(level=logging.ERROR)
+logging.basicConfig(level=logging.WARN)
 
 
 class Validate:
@@ -50,6 +50,36 @@ class Validate:
 
     def _check_parent(self, element, cache):
         self._check_parent_existence(element, cache)
+        self._check_parent_type(element, cache)
+
+    @staticmethod
+    def _check_parent_type(element, cache):
+        try:
+            parent = cache[element['parent']]
+        except KeyError:
+            # logging.warning("Error with parent %s of %s (you probably already know)" % (element['parent'], element['slug']))
+            return
+
+        if element['type'] == IngredientTypes.FAMILY.value:
+            # Parents of Families can only be Categories
+            allowed_parent_types = [IngredientTypes.CATEGORY.value]
+            if parent['type'] not in allowed_parent_types:
+                logging.error("Parent (%s) of %s has invalid type (%s)." % (parent['slug'], element['slug'], parent['type']))
+        elif element['type'] == IngredientTypes.CATEGORY.value:
+            if element['parent'] is not None:
+                logging.error("Parent of category %s is not None (set to %s)" % (element['slug'], element['parent']))
+        elif element['type'] == IngredientTypes.INGREDIENT.value:
+            allowed_parent_types = [IngredientTypes.INGREDIENT.value, IngredientTypes.FAMILY.value]
+            if parent['type'] not in allowed_parent_types:
+                logging.error("Parent (%s) of %s has invalid type (%s)." % (parent['slug'], element['slug'], parent['type']))
+        elif element['type'] == IngredientTypes.PRODUCT.value:
+            allowed_parent_types = [IngredientTypes.INGREDIENT.value, IngredientTypes.FAMILY.value]
+            if parent['type'] not in allowed_parent_types:
+                logging.error("Parent (%s) of %s has invalid type (%s)." % (parent['slug'], element['slug'], parent['type']))
+        elif element['type'] == IngredientTypes.CUSTOM.value:
+            allowed_parent_types = [IngredientTypes.INGREDIENT.value, IngredientTypes.PRODUCT.value]
+            if parent['type'] not in allowed_parent_types:
+                logging.error("Parent (%s) of %s has invalid type (%s)." % (parent['slug'], element['slug'], parent['type']))
 
     @staticmethod
     def _check_parent_existence(element, cache):
@@ -59,11 +89,6 @@ class Validate:
         except KeyError:
             if element['type'] != IngredientTypes.CATEGORY.value:
                 logging.error("Parent of %s does not exist (%s)" % (element['slug'], element['parent']))
-
-        # If the element is a category it should not have a parent
-        if element['type'] == IngredientTypes.CATEGORY.value:
-            if element['parent'] is not None:
-                logging.error("Parent of category %s is not None (set to %s)" % (element['slug'], element['parent']))
 
     @staticmethod
     def _build_cache(elements):
