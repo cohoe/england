@@ -99,3 +99,22 @@ def list_files(path):
 def get_slug_from_path(path):
     file_name = os.path.basename(path)
     return os.path.splitext(file_name)[0]
+
+
+def find_all_files(path, extension=None):
+    """
+    https://stackoverflow.com/questions/3964681/find-all-files-in-a-directory-with-extension-txt-in-python
+    :param path:
+    :param extension:
+    :return:
+    """
+    file_paths = []
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if extension:
+                if file.endswith(extension):
+                    file_paths.append(os.path.join(root, file))
+            else:
+                file_paths.append(os.path.join(root, file))
+
+    return file_paths
