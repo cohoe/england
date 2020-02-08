@@ -5,7 +5,7 @@ from barbados.models import CocktailModel, IngredientModel
 from barbados.factories import CocktailFactory
 from barbados.connectors import PostgresqlConnector
 from barbados.objects import Ingredient
-from barbados.constants import IngredientTypes
+from barbados.constants import IngredientKinds
 
 
 class Import:
@@ -40,13 +40,13 @@ class Import:
                 # Test for existing
                 existing = IngredientModel.query.get(i.slug)
                 if existing:
-                    if existing.type == IngredientTypes.CATEGORY.value or existing.type == IngredientTypes.FAMILY.value:
-                        if i.type_ is IngredientTypes.INGREDIENT:
-                            print("Skipping %s (t:%s) since a broader entry exists (%s)" % (i.slug, i.type_.value, existing.type))
+                    if existing.kind == IngredientKinds.CATEGORY.value or existing.kind == IngredientKinds.FAMILY.value:
+                        if i.kind_ is IngredientKinds.INGREDIENT:
+                            print("Skipping %s (t:%s) since a broader entry exists (%s)" % (i.slug, i.kind_.value, existing.kind))
                         else:
-                            print("%s (p:%s) already exists as a %s (p:%s)" % (i.slug, i.parent, existing.type, existing.parent))
+                            print("%s (p:%s) already exists as a %s (p:%s)" % (i.slug, i.parent, existing.kind, existing.parent))
                     else:
-                        print("%s (p:%s) already exists as a %s (p:%s)" % (i.slug, i.parent, existing.type, existing.parent))
+                        print("%s (p:%s) already exists as a %s (p:%s)" % (i.slug, i.parent, existing.kind, existing.parent))
                 else:
                     db_obj.save()
 
@@ -62,11 +62,11 @@ class Import:
                 if not parent:
                     print("Could not find parent %s for %s" % (ingredient.parent, ingredient.slug))
                     continue
-                if parent.type == IngredientTypes.ALIAS.value:
+                if parent.kind == IngredientKinds.ALIAS.value:
                     print("%s cannot be a child of an alias (%s)." % (ingredient.slug, parent.slug))
                     continue
-                if parent.type == IngredientTypes.PRODUCT.value:
-                    if ingredient.type != IngredientTypes.PRODUCT.value:
+                if parent.kind == IngredientKinds.PRODUCT.value:
+                    if ingredient.kind != IngredientKinds.PRODUCT.value:
                         print("%s cannot be a child of a product (%s)." % (ingredient.slug, parent.slug))
                         continue
         else:
