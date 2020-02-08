@@ -61,11 +61,14 @@ class Import:
                 parent = IngredientModel.query.get(ingredient.parent)
                 if not parent:
                     print("Could not find parent %s for %s" % (ingredient.parent, ingredient.slug))
+                    continue
                 if parent.type == IngredientTypes.ALIAS.value:
                     print("%s cannot be a child of an alias (%s)." % (ingredient.slug, parent.slug))
+                    continue
                 if parent.type == IngredientTypes.PRODUCT.value:
                     if ingredient.type != IngredientTypes.PRODUCT.value:
                         print("%s cannot be a child of a product (%s)." % (ingredient.slug, parent.slug))
+                        continue
         else:
             exit(1)
 
