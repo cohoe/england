@@ -9,7 +9,7 @@ from barbados.exceptions import ValidationException
 import england.util
 import logging
 
-logging.basicConfig(level=logging.WARN)
+logging.basicConfig(level=logging.INFO)
 
 
 class Validate:
@@ -23,21 +23,23 @@ class Validate:
         print(args.path)
         pgconn = PostgresqlConnector(database='amari', username='postgres', password='s3krAt')
 
-        elements = self._load_yaml_data(path=args.path)
-        cache = self._build_cache(elements)
+        # elements = self._load_yaml_data(path=args.path)
+        # cache = self._build_cache(elements)
+
+        elements = IngredientModel.query.all()
 
         for element in elements:
-            logging.info("Testing slug %s" % element['slug'])
-            # self._validate_element(element, elements, cache)
-            i = IngredientModel(**element)
+            logging.info("Testing slug %s" % element.slug)
             try:
-                i.validate()
+                element.validate()
             except ValidationException as e:
                 logging.error(e)
+            # except Exception as e:
+            #     logging.error("HEY SOMETHING REALLY BAD! %s" % e)
 
     def _validate_element(self, element, elements, cache):
         element = self._normalize_element(element)
-        self._check_parent(element, cache)
+        # self._check_parent(element, cache)
         self._check_kind(element)
 
     @staticmethod
@@ -56,48 +58,6 @@ class Validate:
                 element[key] = None
 
         return element
-
-    def _check_parent(self, element, cache):
-        # self._check_parent_existence(element, cache)
-        self._check_parent_kind(element, cache)
-
-    @staticmethod
-    def _check_parent_kind(element, cache):
-        try:
-            parent = cache[element['parent']]
-        except KeyError:
-            # logging.warning("Error with parent %s of %s (you probably already know)" % (element['parent'], element['slug']))
-            return
-
-        if element['kind'] == IngredientKinds.FAMILY.value:
-            # Parents of Families can only be Categories
-            allowed_parent_kinds = [IngredientKinds.CATEGORY.value]
-            if parent['kind'] not in allowed_parent_kinds:
-                logging.error("Parent (%s) of %s has invalid kind (%s)." % (parent['slug'], element['slug'], parent['kind']))
-        elif element['kind'] == IngredientKinds.CATEGORY.value:
-            if element['parent'] is not None:
-                logging.error("Parent of category %s is not None (set to %s)" % (element['slug'], element['parent']))
-        elif element['kind'] == IngredientKinds.INGREDIENT.value:
-            allowed_parent_kinds = [IngredientKinds.INGREDIENT.value, IngredientKinds.FAMILY.value]
-            if parent['kind'] not in allowed_parent_kinds:
-                logging.error("Parent (%s) of %s has invalid kind (%s)." % (parent['slug'], element['slug'], parent['kind']))
-        elif element['kind'] == IngredientKinds.PRODUCT.value:
-            allowed_parent_kinds = [IngredientKinds.INGREDIENT.value, IngredientKinds.FAMILY.value]
-            if parent['kind'] not in allowed_parent_kinds:
-                logging.error("Parent (%s) of %s has invalid kind (%s)." % (parent['slug'], element['slug'], parent['kind']))
-        elif element['kind'] == IngredientKinds.CUSTOM.value:
-            allowed_parent_kinds = [IngredientKinds.INGREDIENT.value, IngredientKinds.PRODUCT.value]
-            if parent['kind'] not in allowed_parent_kinds:
-                logging.error("Parent (%s) of %s has invalid kind (%s)." % (parent['slug'], element['slug'], parent['kind']))
-
-    # @staticmethod
-    # def _check_parent_existence(element, cache):
-    #     # Test if the parent exists at all
-    #     try:
-    #         parent = cache[element['parent']]
-    #     except KeyError:
-    #         if element['kind'] != IngredientKinds.CATEGORY.value:
-    #             logging.error("Parent of %s does not exist (%s)" % (element['slug'], element['parent']))
 
     @staticmethod
     def _build_cache(elements):
