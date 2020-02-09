@@ -118,3 +118,13 @@ def find_all_files(path, extension=None):
                 file_paths.append(os.path.join(root, file))
 
     return file_paths
+
+
+def load_yaml_data_from_path(path, extension='.yaml'):
+    result_data = []
+    files = find_all_files(path=path, extension=extension)
+    for file in files:
+        data = read_yaml_file(file)
+        result_data += data
+
+    return result_data
