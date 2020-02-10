@@ -2,11 +2,113 @@ import argparse
 import sys
 import england.util
 import os
+import slugify
+import logging
 from barbados.models import CocktailModel, IngredientModel
 from barbados.factories import CocktailFactory
 from barbados.connectors import PostgresqlConnector
 from barbados.objects import Ingredient
 from barbados.constants import IngredientKinds
+
+logging.basicConfig(level=logging.WARN)
+
+
+class Importer:
+    importers = {}
+
+    @classmethod
+    def register_importer(cls, importer_class):
+        cls.importers[importer_class.kind] = importer_class
+
+    @classmethod
+    def get_importer(cls, kind):
+        return cls.importers[kind]
+
+    @classmethod
+    def supported_importers(cls):
+        return cls.importers.keys()
+
+
+class BaseImporter:
+    @staticmethod
+    def import_(*args, **kwargs):
+        raise NotImplementedError()
+
+    @staticmethod
+    def _fetch_data_from_path(filepath):
+        if os.path.isfile(filepath):
+            return england.util.read_yaml_file(filepath)
+        else:
+            return england.util.load_yaml_data_from_path(filepath)
+
+
+class RecipeImporter(BaseImporter):
+    kind = 'recipe'
+
+    @staticmethod
+    def import_(filepath):
+        dicts_to_import = RecipeImporter._fetch_data_from_path(filepath)
+
+        for cocktail_dict in dicts_to_import:
+            try:
+                slug = slugify.slugify(cocktail_dict['display_name'])
+                c = CocktailFactory.raw_to_obj(cocktail_dict, slug)
+            except KeyError as e:
+                logging.error("Something has bad data!")
+                logging.error(cocktail_dict)
+                logging.error(e)
+                continue
+
+            # Drop the data and reload
+            logging.debug("Deleting data for %s" % c.slug)
+            existing = CocktailModel.query.get(c.slug)
+            if existing:
+                existing.delete()
+
+            db_obj = CocktailModel(**c.serialize())
+            db_obj.save()
+            logging.debug("Successfully [re]created %s" % c.slug)
+
+
+class IngredientImporter(BaseImporter):
+    kind = 'ingredients'
+
+    @staticmethod
+    def import_(filepath):
+        data = IngredientImporter._fetch_data_from_path(filepath)
+
+        logging.debug("Deleting old data")
+        deleted = IngredientModel.query.delete()
+        logging.info("Deleted %s" % deleted)
+
+        logging.info("Starting import")
+        for ingredient in data:
+            i = Ingredient(**ingredient)
+            db_obj = IngredientModel(**i.serialize())
+
+            # Test for existing
+            existing = IngredientModel.query.get(i.slug)
+            if existing:
+                if existing.kind == IngredientKinds('category').value or existing.kind == IngredientKinds('family').value:
+                    if i.kind is IngredientKinds('ingredient'):
+                        logging.error("Skipping %s (t:%s) since a broader entry exists (%s)" % (i.slug, i.kind.value, existing.kind))
+                    else:
+                        logging.error("%s (p:%s) already exists as a %s (p:%s)" % (i.slug, i.parent, existing.kind, existing.parent))
+                else:
+                    logging.error("%s (p:%s) already exists as a %s (p:%s)" % (i.slug, i.parent, existing.kind, existing.parent))
+            else:
+                db_obj.save()
+
+        # Validate
+
+        logging.info("starting validation")
+        ingredients = IngredientModel.query.all()
+        for ingredient in ingredients:
+            ingredient.validate()
+
+
+Importer.register_importer(RecipeImporter)
+Importer.register_importer(IngredientImporter)
 
 
 class Import:
@@ -19,67 +121,17 @@ class Import:
 
         pgconn = PostgresqlConnector(database='amari', username='postgres', password='s3krAt')
 
-        if args.object == 'recipe':
-            self._import_recipe(args.filepath)
-        elif args.object == 'recipes':
-            recipe_dir = args.filepath
-            for filename in england.util.list_files(recipe_dir):
-                self._import_recipe("%s/%s" % (recipe_dir, filename))
-        elif args.object == 'ingredients':
-            if os.path.isfile(args.filepath):
-                data = england.util.read_yaml_file(args.filepath)
-            else:
-                data = england.util.load_yaml_data_from_path(args.filepath)
+        Importer.get_importer(args.object).import_(args.filepath)
 
-            # Drop the data and reload
-            print("deleting old data")
-            deleted = IngredientModel.query.delete()
-            print(deleted)
+        pgconn.commit()
 
-            print("starting import")
-            for ingredient in data:
-                i = Ingredient(**ingredient)
-                db_obj = IngredientModel(**i.serialize())
-
-                # Test for existing
-                existing = IngredientModel.query.get(i.slug)
-                if existing:
-                    if existing.kind == IngredientKinds('category').value or existing.kind == IngredientKinds('family').value:
-                        if i.kind is IngredientKinds('ingredient'):
-                            print("Skipping %s (t:%s) since a broader entry exists (%s)" % (i.slug, i.kind.value, existing.kind))
-                        else:
-                            print("%s (p:%s) already exists as a %s (p:%s)" % (i.slug, i.parent, existing.kind, existing.parent))
-                    else:
-                        print("%s (p:%s) already exists as a %s (p:%s)" % (i.slug, i.parent, existing.kind, existing.parent))
-                else:
-                    db_obj.save()
-
-            # Validate
-            pgconn.commit()
-            print("starting validation")
-            ingredients = IngredientModel.query.all()
-            for ingredient in ingredients:
-                # find parent
-                if not ingredient.parent:
-                    continue
-                parent = IngredientModel.query.get(ingredient.parent)
-                if not parent:
-                    print("Could not find parent %s for %s" % (ingredient.parent, ingredient.slug))
-                    continue
-                if parent.kind == IngredientKinds('product').value:
-                    if ingredient.kind != IngredientKinds('product').value:
-                        print("%s cannot be a child of a product (%s)." % (ingredient.slug, parent.slug))
-                        continue
-        else:
-            exit(1)
-
-        IngredientModel.get_usable_ingredients()
+        print(IngredientModel.get_usable_ingredients())
 
     @staticmethod
     def _setup_args():
         parser = argparse.ArgumentParser(description='Import something to the database',
                                          usage='amari import <object> <recipepath>')
-        parser.add_argument('object', help='object to import', choices=['recipe', 'recipes', 'ingredients'])
+        parser.add_argument('object', help='object to import', choices=Importer.supported_importers())
         parser.add_argument('filepath', help='path to the yaml file (or directory) containing the objects')
 
         return parser.parse_args(sys.argv[2:])
@@ -87,22 +139,3 @@ class Import:
     @staticmethod
     def _validate_args(args):
         pass
-
-    @staticmethod
-    def _import_recipe(filepath):
-        data = england.util.read_yaml_file(filepath)[0]
-        slug = england.util.get_slug_from_path(filepath)
-        c = CocktailFactory.raw_to_obj(data, slug)
-        print("Working %s" % filepath)
-
-        # Drop the data and reload
-        print("deleting old data")
-        # Test for existing
-        existing = CocktailModel.query.get(c.slug)
-        if existing:
-            existing.delete()
-
-        db_obj = CocktailModel(**c.serialize())
-        # db_conn.save(db_obj)
-        db_obj.save()
-        print("created new")
