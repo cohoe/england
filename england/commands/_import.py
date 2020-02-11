@@ -125,8 +125,6 @@ class Import:
 
         pgconn.commit()
 
-        print(IngredientModel.get_usable_ingredients())
-
     @staticmethod
     def _setup_args():
         parser = argparse.ArgumentParser(description='Import something to the database',
