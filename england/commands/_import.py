@@ -10,7 +10,7 @@ from barbados.connectors import PostgresqlConnector
 from barbados.objects import Ingredient
 from barbados.constants import IngredientKinds
 
-logging.basicConfig(level=logging.WARN)
+logging.basicConfig(level=logging.DEBUG)
 
 
 class Importer:
@@ -59,15 +59,27 @@ class RecipeImporter(BaseImporter):
                 logging.error(e)
                 continue
 
-            # Drop the data and reload
-            logging.debug("Deleting data for %s" % c.slug)
-            existing = CocktailModel.query.get(c.slug)
-            if existing:
-                existing.delete()
+            RecipeImporter.delete(cocktail=c)
 
             db_obj = CocktailModel(**c.serialize())
             db_obj.save()
             logging.debug("Successfully [re]created %s" % c.slug)
+
+    @staticmethod
+    def delete(cocktail=None, delete_all=False):
+
+        if cocktail:
+            existing = CocktailModel.query.get(cocktail.slug)
+
+            if existing:
+                logging.debug("Deleting %s" % existing.slug)
+                deleted = CocktailModel.delete(existing)
+                return
+
+        if delete_all is True:
+            logging.debug("Deleting all CocktailModel")
+            deleted = CocktailModel.query.delete()
+            logging.info("Deleted %s from %s" % (deleted, CocktailModel.__tablename__))
 
 
 class IngredientImporter(BaseImporter):
@@ -77,9 +89,7 @@ class IngredientImporter(BaseImporter):
     def import_(filepath):
         data = IngredientImporter._fetch_data_from_path(filepath)
 
-        logging.debug("Deleting old data")
-        deleted = IngredientModel.query.delete()
-        logging.info("Deleted %s" % deleted)
+        IngredientImporter.delete()
 
         logging.info("Starting import")
         for ingredient in data:
@@ -105,6 +115,12 @@ class IngredientImporter(BaseImporter):
         ingredients = IngredientModel.query.all()
         for ingredient in ingredients:
             ingredient.validate()
+
+    @staticmethod
+    def delete():
+        logging.debug("Deleting old data")
+        deleted = IngredientModel.query.delete()
+        logging.info("Deleted %s" % deleted)
 
 
 Importer.register_importer(RecipeImporter)
