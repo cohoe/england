@@ -7,8 +7,8 @@ import logging
 from barbados.models import CocktailModel, IngredientModel
 from barbados.factories import CocktailFactory
 from barbados.connectors import PostgresqlConnector
-from barbados.objects import Ingredient
-from barbados.constants import IngredientKinds
+from barbados.objects.ingredient import Ingredient
+from barbados.objects.ingredientkinds import IngredientKinds
 
 logging.basicConfig(level=logging.DEBUG)
 
