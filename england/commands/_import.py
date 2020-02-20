@@ -9,6 +9,7 @@ from barbados.factories import CocktailFactory
 from barbados.connectors import PostgresqlConnector
 from barbados.objects.ingredient import Ingredient
 from barbados.objects.ingredientkinds import IngredientKinds
+from barbados.serializers import ObjectSerializer
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -94,7 +95,7 @@ class IngredientImporter(BaseImporter):
         logging.info("Starting import")
         for ingredient in data:
             i = Ingredient(**ingredient)
-            db_obj = IngredientModel(**i.serialize())
+            db_obj = IngredientModel(**ObjectSerializer.serialize(i, 'dict'))
 
             # Test for existing
             existing = IngredientModel.query.get(i.slug)
