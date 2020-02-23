@@ -10,6 +10,7 @@ from barbados.connectors import PostgresqlConnector
 from barbados.objects.ingredient import Ingredient
 from barbados.objects.ingredientkinds import IngredientKinds
 from barbados.serializers import ObjectSerializer
+from barbados.exceptions import ValidationException
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -115,7 +116,11 @@ class IngredientImporter(BaseImporter):
         logging.info("starting validation")
         ingredients = IngredientModel.query.all()
         for ingredient in ingredients:
-            ingredient.validate()
+            try:
+                ingredient.validate()
+            except ValidationException as e:
+                logging.error(e)
+
 
     @staticmethod
     def delete():
