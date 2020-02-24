@@ -3,7 +3,6 @@ import sys
 import england.util
 import os
 import slugify
-import logging
 from barbados.models import CocktailModel, IngredientModel
 from barbados.factories import CocktailFactory
 from barbados.connectors import PostgresqlConnector
@@ -11,8 +10,8 @@ from barbados.objects.ingredient import Ingredient
 from barbados.objects.ingredientkinds import IngredientKinds
 from barbados.serializers import ObjectSerializer
 from barbados.exceptions import ValidationException
-
-logging.basicConfig(level=logging.DEBUG)
+from barbados.objects.caches import IngredientTreeCache
+from barbados.services import logging
 
 
 class Importer:
@@ -91,6 +90,7 @@ class IngredientImporter(BaseImporter):
     def import_(filepath):
         data = IngredientImporter._fetch_data_from_path(filepath)
 
+        # Delete old data
         IngredientImporter.delete()
 
         logging.info("Starting import")
@@ -112,7 +112,20 @@ class IngredientImporter(BaseImporter):
                 db_obj.save()
 
         # Validate
+        IngredientImporter.validate()
 
+        # Invalidate the cache
+        logging.info("invalidating cache")
+        IngredientTreeCache.invalidate()
+
+    @staticmethod
+    def delete():
+        logging.debug("Deleting old data")
+        deleted = IngredientModel.query.delete()
+        logging.info("Deleted %s" % deleted)
+
+    @staticmethod
+    def validate():
         logging.info("starting validation")
         ingredients = IngredientModel.query.all()
         for ingredient in ingredients:
@@ -120,13 +133,6 @@ class IngredientImporter(BaseImporter):
                 ingredient.validate()
             except ValidationException as e:
                 logging.error(e)
-
-
-    @staticmethod
-    def delete():
-        logging.debug("Deleting old data")
-        deleted = IngredientModel.query.delete()
-        logging.info("Deleted %s" % deleted)
 
 
 Importer.register_importer(RecipeImporter)
