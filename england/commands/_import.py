@@ -2,16 +2,17 @@ import argparse
 import sys
 import england.util
 import os
-import slugify
+import logging
 from barbados.models import CocktailModel, IngredientModel
 from barbados.factories import CocktailFactory
 from barbados.connectors import PostgresqlConnector
 from barbados.objects.ingredient import Ingredient
 from barbados.objects.ingredientkinds import IngredientKinds
+from barbados.objects.slug import Slug
 from barbados.serializers import ObjectSerializer
+from barbados.validators import ObjectValidator
 from barbados.exceptions import ValidationException
 from barbados.objects.caches import IngredientTreeCache
-from barbados.services import logging
 
 
 class Importer:
@@ -52,7 +53,7 @@ class RecipeImporter(BaseImporter):
 
         for cocktail_dict in dicts_to_import:
             try:
-                slug = slugify.slugify(cocktail_dict['display_name'])
+                slug = Slug(cocktail_dict['display_name'])
                 c = CocktailFactory.raw_to_obj(cocktail_dict, slug)
             except KeyError as e:
                 logging.error("Something has bad data!")
@@ -62,9 +63,11 @@ class RecipeImporter(BaseImporter):
 
             RecipeImporter.delete(cocktail=c)
 
-            db_obj = CocktailModel(**c.serialize())
+            db_obj = CocktailModel(**ObjectSerializer.serialize(c, 'dict'))
             db_obj.save()
-            logging.debug("Successfully [re]created %s" % c.slug)
+            logging.info("Successfully [re]created %s" % c.slug)
+
+            ObjectValidator.validate(db_obj, fatal=False)
 
     @staticmethod
     def delete(cocktail=None, delete_all=False):
