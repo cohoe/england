@@ -7,3 +7,4 @@ from .scrape import Scrape
 from .config import Config
 from .migrate import Migrate
 from .validate import Validate
+from .search import Search
