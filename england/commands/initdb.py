@@ -2,6 +2,7 @@ import argparse
 import sys
 from barbados.connectors import PostgresqlConnector
 from barbados.services import AppConfig
+from barbados.indexes import index_factory
 
 
 class Initdb:
@@ -17,6 +18,8 @@ class Initdb:
 
         AppConfig.set('/jamaica/api/v1/cocktail_name_list_key', 'cocktail_name_index')
         AppConfig.set('/jamaica/api/v1/ingredient_name_list_key', 'ingredient_name_index')
+
+        index_factory.init()
 
     @staticmethod
     def _setup_args():
