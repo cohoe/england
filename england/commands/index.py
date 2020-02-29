@@ -2,6 +2,9 @@ import argparse
 import sys
 from barbados.connectors import ElasticsearchConnector
 from barbados.factories import CocktailFactory
+import england.util
+from barbados.serializers import ObjectSerializer
+import logging
 
 
 class Index:
@@ -12,15 +15,18 @@ class Index:
         args = self._setup_args()
         self._validate_args(args)
 
-        c = CocktailFactory.obj_from_file(args.recipepath)
+        raw_recipe = england.util.read_yaml_file(args.recipepath)[0]
+        slug = england.util.get_slug_from_path(args.recipepath)
+
+        c = CocktailFactory.raw_to_obj(raw_recipe, slug)
         print("Working %s" % args.recipepath)
 
-        print(c.serialize())
-
         es = ElasticsearchConnector()
-        es.upload_doc(index='recipe', id=c.slug, obj=c)
+        es.insert(index='recipe', id=slug, body=ObjectSerializer.serialize(c, 'JSON'))
 
+        version = es.get('recipe', c.slug)['_version']
 
+        logging.info("%s is at version %s" % (c.slug, version))
 
     @staticmethod
     def _setup_args():
