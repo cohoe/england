@@ -13,6 +13,7 @@ from barbados.serializers import ObjectSerializer
 from barbados.validators import ObjectValidator
 from barbados.exceptions import ValidationException
 from barbados.objects.caches import IngredientTreeCache
+from barbados.indexes import RecipeIndex
 
 
 class Importer:
@@ -68,6 +69,8 @@ class RecipeImporter(BaseImporter):
             logging.info("Successfully [re]created %s" % c.slug)
 
             ObjectValidator.validate(db_obj, fatal=False)
+
+            RecipeIndexer.index(c)
 
     @staticmethod
     def delete(cocktail=None, delete_all=False):
@@ -140,6 +143,19 @@ class IngredientImporter(BaseImporter):
 
 Importer.register_importer(RecipeImporter)
 Importer.register_importer(IngredientImporter)
+
+
+class BaseIndexer:
+    @staticmethod
+    def index(*args, **kwargs):
+        raise NotImplementedError()
+
+
+class RecipeIndexer(BaseIndexer):
+    @staticmethod
+    def index(cocktail_object):
+        index = CocktailFactory.obj_to_index(cocktail_object, RecipeIndex)
+        index.save()
 
 
 class Import:
