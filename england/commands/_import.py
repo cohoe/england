@@ -55,6 +55,7 @@ class RecipeImporter(BaseImporter):
         for cocktail_dict in dicts_to_import:
             try:
                 slug = Slug(cocktail_dict['display_name'])
+                logging.info("Working %s" % slug)
                 c = CocktailFactory.raw_to_obj(cocktail_dict, slug)
             except KeyError as e:
                 logging.error("Something has bad data!")
