@@ -42,6 +42,8 @@ def read_file(path):
 def read_yaml_file(path, fatal=True):
     contents = read_file(path)
     try:
+        # Heads up! This will automagically do date conversion to date
+        # Date objects. Some kind of implicit type nonsense.
         data = yaml.safe_load(contents)
         return data
     except Exception as e:
