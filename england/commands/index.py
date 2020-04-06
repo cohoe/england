@@ -1,8 +1,12 @@
 import argparse
 import sys
-from barbados.factories import CocktailFactory
+from barbados.factories import CocktailFactory, IngredientFactory
 import england.util
-from barbados.indexes import RecipeIndex
+from barbados.indexers import RecipeIndexer
+from barbados.objects.caches import IngredientTreeCache
+from barbados.models.ingredientmodel import IngredientModel
+from barbados.connectors.postgresql import PostgresqlConnector
+from barbados.indexers.ingredientindexer import IngredientIndexer
 
 
 class Index:
@@ -13,21 +17,30 @@ class Index:
         args = self._setup_args()
         self._validate_args(args)
 
-        raw_recipe = england.util.read_yaml_file(args.recipepath)[0]
-        slug = england.util.get_slug_from_path(args.recipepath)
+        pgconn = PostgresqlConnector(database='amari', username='postgres', password='s3krAt')
 
-        c = CocktailFactory.raw_to_obj(raw_recipe, slug)
-        print("Working %s" % args.recipepath)
+        if args.kind == 'recipe':
+            raw_recipe = england.util.read_yaml_file(args.sourcepath)[0]
+            slug = england.util.get_slug_from_path(args.sourcepath)
 
-        index = CocktailFactory.obj_to_index(c, RecipeIndex)
-        index.save()
+            c = CocktailFactory.raw_to_obj(raw_recipe, slug)
+            print("Working %s" % args.sourcepath)
+            RecipeIndexer.index(c)
+        elif args.kind == 'ingredients':
+            tree = IngredientTreeCache.retrieve()
+            for node in tree.nodes():
+                m = IngredientModel.get_by_slug(node.tag)
+                i = IngredientFactory.to_obj(m)
+                IngredientIndexer.index(i)
+                # return
 
 
     @staticmethod
     def _setup_args():
-        parser = argparse.ArgumentParser(description='Index a cocktail object',
-                                         usage='amari index <recipepath>')
-        parser.add_argument('recipepath', help='name of yaml file to create')
+        parser = argparse.ArgumentParser(description='Index something into ElasticSearch',
+                                         usage='amari index [kind] [sourcepath]')
+        parser.add_argument('kind', help='kind of thing to index')
+        parser.add_argument('sourcepath', help='name of yaml file to create')
 
         return parser.parse_args(sys.argv[2:])
 
