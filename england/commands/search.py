@@ -41,7 +41,7 @@ class Search:
                 },
                 {
                     'multi_match': {
-                        'query': 'agave',
+                        'query': 'sherry',
                         'type': 'phrase_prefix',
                         'fields': ['specs.components.slug', 'specs.components.display_name', 'specs.components.parents'],
                     }
