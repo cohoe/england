@@ -8,7 +8,7 @@ from barbados.factories import CocktailFactory
 from barbados.connectors import PostgresqlConnector
 from barbados.objects.ingredient import Ingredient
 from barbados.objects.ingredientkinds import IngredientKinds
-from barbados.objects.slug import Slug
+from barbados.text import Slug
 from barbados.serializers import ObjectSerializer
 from barbados.validators import ObjectValidator
 from barbados.exceptions import ValidationException
