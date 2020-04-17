@@ -12,7 +12,7 @@ from barbados.text import Slug
 from barbados.serializers import ObjectSerializer
 from barbados.validators import ObjectValidator
 from barbados.exceptions import ValidationException
-from barbados.objects.caches import IngredientTreeCache
+from barbados.caches import IngredientTreeCache
 from barbados.indexers import indexer_factory
 
 

@@ -3,7 +3,7 @@ import sys
 from barbados.factories import CocktailFactory, IngredientFactory
 import england.util
 from barbados.indexers import RecipeIndexer
-from barbados.objects.caches import IngredientTreeCache
+from barbados.caches import IngredientTreeCache
 from barbados.models.ingredientmodel import IngredientModel
 from barbados.connectors.postgresql import PostgresqlConnector
 from barbados.indexers.ingredientindexer import IngredientIndexer
