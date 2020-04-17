@@ -4,6 +4,3 @@ from .index import Index
 from ._import import Import
 from .init import Init
 from .scrape import Scrape
-from .migrate import Migrate
-from .validate import Validate
-from .search import Search

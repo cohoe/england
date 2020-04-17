@@ -1,5 +1,6 @@
 import argparse
 import sys
+import os
 from barbados.connectors import PostgresqlConnector
 from barbados.services import Registry
 from barbados.indexes import index_factory
@@ -13,9 +14,14 @@ class Init:
         args = self._setup_args()
         self._validate_args(args)
 
-        db_username = 'postgres'
-        db_password = 's3krAt'
-        db_database = 'amari'
+        try:
+            # This syntax guarantees KeyError
+            db_username = os.environ['DATABASE_USERNAME']
+            db_password = os.environ['DATABASE_PASSWORD']
+            db_database = os.environ['DATABASE_NAME']
+        except KeyError as e:
+            print("Environment variable missing: %s" % e)
+            exit(1)
 
         conn = PostgresqlConnector(username=db_username, password=db_password, database=db_database)
         conn.create_all()

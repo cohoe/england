@@ -5,7 +5,7 @@ import england.util
 from barbados.indexers import RecipeIndexer
 from barbados.caches import IngredientTreeCache
 from barbados.models.ingredientmodel import IngredientModel
-from barbados.connectors.postgresql import PostgresqlConnector
+from barbados.services import Registry
 from barbados.indexers.ingredientindexer import IngredientIndexer
 
 
@@ -17,7 +17,7 @@ class Index:
         args = self._setup_args()
         self._validate_args(args)
 
-        pgconn = PostgresqlConnector(database='amari', username='postgres', password='s3krAt')
+        pgconn = Registry.get_database_connection()
 
         if args.kind == 'recipe':
             raw_recipe = england.util.read_yaml_file(args.sourcepath)[0]

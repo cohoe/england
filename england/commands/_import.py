@@ -5,7 +5,7 @@ import os
 import logging
 from barbados.models import CocktailModel, IngredientModel
 from barbados.factories import CocktailFactory
-from barbados.connectors import PostgresqlConnector
+from barbados.services import Registry
 from barbados.objects.ingredient import Ingredient
 from barbados.objects.ingredientkinds import IngredientKinds
 from barbados.text import Slug
@@ -154,7 +154,7 @@ class Import:
         args = self._setup_args()
         self._validate_args(args)
 
-        pgconn = PostgresqlConnector(database='amari', username='postgres', password='s3krAt')
+        pgconn = Registry.get_database_connection()
 
         Importer.get_importer(args.object).import_(args.filepath)
 
