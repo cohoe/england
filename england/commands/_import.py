@@ -12,7 +12,7 @@ from barbados.text import Slug
 from barbados.serializers import ObjectSerializer
 from barbados.validators import ObjectValidator
 from barbados.exceptions import ValidationException
-from barbados.caches import IngredientTreeCache
+from barbados.caches import IngredientTreeCache, CocktailNameCache
 from barbados.indexers import indexer_factory
 
 
@@ -73,6 +73,8 @@ class RecipeImporter(BaseImporter):
 
             indexer_factory.get_indexer(c).index(c)
 
+        CocktailNameCache.invalidate()
+
     @staticmethod
     def delete(cocktail=None, delete_all=False):
 
@@ -123,7 +125,6 @@ class IngredientImporter(BaseImporter):
         IngredientImporter.validate()
 
         # Invalidate the cache
-        logging.info("invalidating cache")
         IngredientTreeCache.invalidate()
 
     @staticmethod
