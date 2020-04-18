@@ -117,6 +117,7 @@ class IngredientImporter(BaseImporter):
                     logging.error("%s (p:%s) already exists as a %s (p:%s)" % (i.slug, i.parent, existing.kind, existing.parent))
             else:
                 db_obj.save()
+                indexer_factory.get_indexer(i).index(i)
 
         # Validate
         IngredientImporter.validate()
