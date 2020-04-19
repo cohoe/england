@@ -1,10 +1,8 @@
 import argparse
 import sys
-import england.util
-import json
-from barbados.connectors.mixologytech import Database
+import pprint
 from barbados.connectors.sqlite import SqliteConnector
-from barbados.models.mixologytech import IngredientModel, IngredientAlternateSpellingModel
+from barbados.models.mixologytech import IngredientModel, RecipeFactoidModel, RecipeModel, RecipeKeywordModel
 
 
 class Extract:
@@ -20,9 +18,22 @@ class Extract:
         # print(len(IngredientModel.query.all()))
         # for ingredient in IngredientModel.query.all():
         #     print(ingredient.canonical_name)
-        for altname in IngredientAlternateSpellingModel.query.all():
-            print(altname.ingredient_id)
+        # for altname in IngredientAlternateSpellingModel.query.all():
+        #     print(altname.ingredient_id)
+        recipe = RecipeModel.query.filter(RecipeModel.title == 'Framboise Fizz')[0]
 
+        dependency_ids = [dep[0] for dep in recipe.ingredient_dependencies_json]
+
+        dependencies = [IngredientModel.query.filter(IngredientModel.remote_id == dep_id)[0] for dep_id in dependency_ids]
+        print(recipe.title)
+        print([dep.canonical_name for dep in dependencies])
+
+        raw_keywords = RecipeFactoidModel.query.filter(RecipeFactoidModel.fok_recipe == 8192, RecipeFactoidModel.recipe_id == recipe.id)[0].content
+        raw_keywords = raw_keywords.split(', ')
+        keywords = [RecipeKeywordModel.query.filter(RecipeKeywordModel.remote_id == keyword)[0].shortname for keyword in raw_keywords]
+        print(keywords)
+
+        pprint.pprint(recipe.detail_json)
 
     # def run(self):
     #     args = self._setup_args()
@@ -59,7 +70,6 @@ class Extract:
     #     # print(raw_synonyms)
     #     # print(raw_categories)
     #     # print(raw_ingredient)
-
 
     # @staticmethod
     # def _parse_detail_json(detail_json):
