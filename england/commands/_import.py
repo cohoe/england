@@ -14,6 +14,7 @@ from barbados.validators import ObjectValidator
 from barbados.exceptions import ValidationException
 from barbados.caches import IngredientTreeCache, CocktailNameCache
 from barbados.indexers import indexer_factory
+from barbados.indexes import index_factory, RecipeIndex, IngredientIndex
 
 
 class Importer:
@@ -51,6 +52,9 @@ class RecipeImporter(BaseImporter):
     @staticmethod
     def import_(filepath):
         dicts_to_import = RecipeImporter._fetch_data_from_path(filepath)
+
+        if len(dicts_to_import) > 1:
+            RecipeImporter.delete(delete_all=True)
 
         for cocktail_dict in dicts_to_import:
             try:
@@ -90,6 +94,7 @@ class RecipeImporter(BaseImporter):
             logging.debug("Deleting all CocktailModel")
             deleted = CocktailModel.query.delete()
             logging.info("Deleted %s from %s" % (deleted, CocktailModel.__tablename__))
+            index_factory.rebuild(RecipeIndex)
 
 
 class IngredientImporter(BaseImporter):
@@ -129,9 +134,10 @@ class IngredientImporter(BaseImporter):
 
     @staticmethod
     def delete():
-        logging.debug("Deleting old data")
+        logging.debug("Deleting old data from database")
         deleted = IngredientModel.query.delete()
         logging.info("Deleted %s" % deleted)
+        index_factory.rebuild(IngredientIndex)
 
     @staticmethod
     def validate():
