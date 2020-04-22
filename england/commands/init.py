@@ -24,6 +24,7 @@ class Init:
             exit(1)
 
         conn = PostgresqlConnector(username=db_username, password=db_password, database=db_database)
+        conn.drop_all()
         conn.create_all()
 
         Registry.set('/jamaica/api/v1/cocktail_name_list_key', 'cocktail_name_index')
