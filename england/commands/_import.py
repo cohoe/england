@@ -16,6 +16,8 @@ from barbados.caches import IngredientTreeCache, CocktailNameCache
 from barbados.indexers import indexer_factory
 from barbados.indexes import index_factory, RecipeIndex, IngredientIndex
 
+pgconn = Registry.get_database_connection()
+
 
 class Importer:
     importers = {}
@@ -70,10 +72,11 @@ class RecipeImporter(BaseImporter):
             RecipeImporter.delete(cocktail=c)
 
             db_obj = CocktailModel(**ObjectSerializer.serialize(c, 'dict'))
-            db_obj.save()
-            logging.info("Successfully [re]created %s" % c.slug)
+            with pgconn.get_session() as session:
+                session.add(db_obj)
+                logging.info("Successfully [re]created %s" % c.slug)
 
-            ObjectValidator.validate(db_obj, fatal=False)
+                ObjectValidator.validate(db_obj, session=session, fatal=False)
 
             indexer_factory.get_indexer(c).index(c)
 
@@ -83,18 +86,20 @@ class RecipeImporter(BaseImporter):
     def delete(cocktail=None, delete_all=False):
 
         if cocktail:
-            existing = CocktailModel.query.get(cocktail.slug)
+            with pgconn.get_session() as session:
+                existing = session.query(CocktailModel).get(cocktail.slug)
 
-            if existing:
-                logging.debug("Deleting %s" % existing.slug)
-                deleted = CocktailModel.delete(existing)
-                return
+                if existing:
+                    logging.debug("Deleting %s" % existing.slug)
+                    deleted = session.delete(existing)
+            return
 
         if delete_all is True:
-            logging.debug("Deleting all CocktailModel")
-            deleted = CocktailModel.query.delete()
-            logging.info("Deleted %s from %s" % (deleted, CocktailModel.__tablename__))
-            index_factory.rebuild(RecipeIndex)
+            with pgconn.get_session() as session:
+                logging.debug("Deleting all CocktailModel")
+                deleted = session.query(CocktailModel).delete()
+                logging.info("Deleted %s from %s" % (deleted, CocktailModel.__tablename__))
+                index_factory.rebuild(RecipeIndex)
 
 
 class IngredientImporter(BaseImporter):
@@ -113,21 +118,27 @@ class IngredientImporter(BaseImporter):
             db_obj = IngredientModel(**ObjectSerializer.serialize(i, 'dict'))
 
             # Test for existing
-            existing = IngredientModel.query.get(i.slug)
-            if existing:
-                if existing.kind == IngredientKinds('category').value or existing.kind == IngredientKinds('family').value:
-                    if i.kind is IngredientKinds('ingredient'):
-                        logging.error("Skipping %s (t:%s) since a broader entry exists (%s)" % (i.slug, i.kind.value, existing.kind))
+            with pgconn.get_session() as session:
+                # existing = IngredientModel.query.get(i.slug)
+                existing = session.query(IngredientModel).get(i.slug)
+                if existing:
+                    if existing.kind == IngredientKinds('category').value or existing.kind == IngredientKinds('family').value:
+                        if i.kind is IngredientKinds('ingredient'):
+                            logging.error("Skipping %s (t:%s) since a broader entry exists (%s)" % (i.slug, i.kind.value, existing.kind))
+                        else:
+                            logging.error("%s (p:%s) already exists as a %s (p:%s)" % (i.slug, i.parent, existing.kind, existing.parent))
                     else:
                         logging.error("%s (p:%s) already exists as a %s (p:%s)" % (i.slug, i.parent, existing.kind, existing.parent))
                 else:
-                    logging.error("%s (p:%s) already exists as a %s (p:%s)" % (i.slug, i.parent, existing.kind, existing.parent))
-            else:
-                db_obj.save()
-                indexer_factory.get_indexer(i).index(i)
+                    session.add(db_obj)
+                    indexer_factory.get_indexer(i).index(i)
 
-        # Validate
-        IngredientImporter.validate()
+        logging.info("Validating")
+        with pgconn.get_session() as session:
+            objects = session.query(IngredientModel).all()
+            for db_obj in objects:
+                # Validate
+                ObjectValidator.validate(db_obj, session=session, fatal=False)
 
         # Invalidate the cache
         IngredientTreeCache.invalidate()
@@ -135,19 +146,24 @@ class IngredientImporter(BaseImporter):
     @staticmethod
     def delete():
         logging.debug("Deleting old data from database")
-        deleted = IngredientModel.query.delete()
+        with pgconn.get_session() as session:
+            deleted = session.query(IngredientModel).delete()
+
+        # deleted = IngredientModel.query.delete()
         logging.info("Deleted %s" % deleted)
         index_factory.rebuild(IngredientIndex)
 
     @staticmethod
     def validate():
         logging.info("starting validation")
-        ingredients = IngredientModel.query.all()
-        for ingredient in ingredients:
-            try:
-                ingredient.validate()
-            except ValidationException as e:
-                logging.error(e)
+        with pgconn.get_session() as session:
+            ingredients = session.query(IngredientModel).all()
+        # ingredients = IngredientModel.query.all()
+            for ingredient in ingredients:
+                try:
+                    ingredient.validate()
+                except ValidationException as e:
+                    logging.error(e)
 
 
 Importer.register_importer(RecipeImporter)
@@ -162,11 +178,9 @@ class Import:
         args = self._setup_args()
         self._validate_args(args)
 
-        pgconn = Registry.get_database_connection()
-
         Importer.get_importer(args.object).import_(args.filepath)
 
-        pgconn.commit()
+        # pgconn.commit()
 
     @staticmethod
     def _setup_args():
