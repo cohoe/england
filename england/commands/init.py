@@ -1,6 +1,7 @@
 import argparse
 import sys
 import os
+import requests
 from barbados.connectors import PostgresqlConnector
 from barbados.services import Registry
 from barbados.indexes import index_factory
@@ -36,6 +37,21 @@ class Init:
         Registry.set('/database/postgres/database', db_database)
 
         index_factory.init()
+        self._kibana_settings()
+        # @TODO kibana index patterns
+
+    @staticmethod
+    def _kibana_settings():
+        headers = {
+            'kbn-version': '7.5.0',
+            'Content-Type': 'application/json'
+        }
+        data = '{"changes":{"theme:darkMode":true}}'
+
+        resp = requests.post('http://localhost:5601/api/kibana/settings', headers=headers, data=data)
+        if resp.status_code == 200:
+            print("Dark mode set")
+        print(resp.content)
 
     @staticmethod
     def _setup_args():
