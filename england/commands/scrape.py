@@ -11,8 +11,9 @@ class Scrape:
         args = self._setup_args()
         self._validate_args(args)
 
-        cats = UpneatConnector.scrape_ingredients()
+        # cats = UpneatConnector.scrape_ingredients()
         # print(cats)
+        print(UpneatConnector.scrape_recipe(args.source))
 
 
     @staticmethod
