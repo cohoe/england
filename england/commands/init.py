@@ -3,7 +3,7 @@ import sys
 import os
 import requests
 from barbados.connectors import PostgresqlConnector
-from barbados.services import Registry
+from barbados.services import Registry, logging
 from barbados.indexes import index_factory
 
 
@@ -50,8 +50,7 @@ class Init:
 
         resp = requests.post('http://localhost:5601/api/kibana/settings', headers=headers, data=data)
         if resp.status_code == 200:
-            print("Dark mode set")
-        print(resp.content)
+            logging.info("Kibana set to dark mode.")
 
     @staticmethod
     def _setup_args():
