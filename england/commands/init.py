@@ -28,8 +28,6 @@ class Init:
         conn.drop_all()
         conn.create_all()
 
-        Registry.set('/jamaica/api/v1/cocktail_name_list_key', 'cocktail_name_index')
-        Registry.set('/jamaica/api/v1/ingredient_name_list_key', 'ingredient_name_index')
         Registry.set('/database/postgres/hostname', '127.0.0.1')
         Registry.set('/database/postgres/port', '5432')
         Registry.set('/database/postgres/username', db_username)
