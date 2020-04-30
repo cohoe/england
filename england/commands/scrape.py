@@ -1,6 +1,10 @@
 import argparse
 import sys
 from barbados.connectors import UpneatConnector
+from barbados.services import Registry
+from barbados.models import CocktailModel
+from barbados.serializers import ObjectSerializer
+from barbados.caches import CocktailScanCache
 
 
 class Scrape:
@@ -11,10 +15,14 @@ class Scrape:
         args = self._setup_args()
         self._validate_args(args)
 
-        # cats = UpneatConnector.scrape_ingredients()
-        # print(cats)
-        print(UpneatConnector.scrape_recipe(args.source))
+        pgconn = Registry.get_database_connection()
+        c = UpneatConnector.scrape_recipe(args.source)
 
+        with pgconn.get_session() as session:
+            db_obj = CocktailModel(**ObjectSerializer.serialize(c, 'dict'))
+            session.add(db_obj)
+
+        CocktailScanCache.invalidate()
 
     @staticmethod
     def _setup_args():
