@@ -8,6 +8,7 @@ from barbados.caches import CocktailScanCache
 from barbados.indexers import indexer_factory
 from pprint import pprint
 import ruamel.yaml
+from england.util import write_file
 
 
 class Scrape:
@@ -33,9 +34,10 @@ class Scrape:
         #         indexer_factory.get_indexer(c).index(c)
         #
         # CocktailScanCache.invalidate()
-        # for c in objects:
-        #     print(ruamel.yaml.round_trip_dump(ObjectSerializer.serialize(c, 'dict'), indent=2, block_seq_indent=3))
-        #     return
+        for c in objects:
+            content = ruamel.yaml.round_trip_dump([ObjectSerializer.serialize(c, 'dict')])
+            filename = "%s.yaml" % c.slug
+            write_file(path="../tortuga/dump/%s" % filename, contents=content)
 
 
     @staticmethod

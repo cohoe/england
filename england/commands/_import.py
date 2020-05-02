@@ -16,8 +16,6 @@ from barbados.caches import IngredientTreeCache, CocktailScanCache
 from barbados.indexers import indexer_factory
 from barbados.indexes import index_factory, RecipeIndex, IngredientIndex
 
-pgconn = Registry.get_database_connection()
-
 
 class Importer:
     importers = {}
@@ -36,6 +34,9 @@ class Importer:
 
 
 class BaseImporter:
+
+    pgconn = Registry.get_database_connection()
+
     @staticmethod
     def import_(*args, **kwargs):
         raise NotImplementedError()
@@ -118,7 +119,7 @@ class IngredientImporter(BaseImporter):
             db_obj = IngredientModel(**ObjectSerializer.serialize(i, 'dict'))
 
             # Test for existing
-            with pgconn.get_session() as session:
+            with BaseImporter.pgconn.get_session() as session:
                 # existing = IngredientModel.query.get(i.slug)
                 existing = session.query(IngredientModel).get(i.slug)
                 if existing:
@@ -134,7 +135,7 @@ class IngredientImporter(BaseImporter):
                     indexer_factory.get_indexer(i).index(i)
 
         logging.info("Validating")
-        with pgconn.get_session() as session:
+        with BaseImporter.pgconn.get_session() as session:
             objects = session.query(IngredientModel).all()
             for db_obj in objects:
                 # Validate
@@ -146,7 +147,7 @@ class IngredientImporter(BaseImporter):
     @staticmethod
     def delete():
         logging.debug("Deleting old data from database")
-        with pgconn.get_session() as session:
+        with BaseImporter.pgconn.get_session() as session:
             deleted = session.query(IngredientModel).delete()
 
         # deleted = IngredientModel.query.delete()
@@ -156,7 +157,7 @@ class IngredientImporter(BaseImporter):
     @staticmethod
     def validate():
         logging.info("starting validation")
-        with pgconn.get_session() as session:
+        with BaseImporter.pgconn.get_session() as session:
             ingredients = session.query(IngredientModel).all()
         # ingredients = IngredientModel.query.all()
             for ingredient in ingredients:
@@ -171,12 +172,15 @@ Importer.register_importer(IngredientImporter)
 
 
 class Import:
+
     def __init__(self):
         pass
 
     def run(self):
         args = self._setup_args()
         self._validate_args(args)
+
+        # pgconn = Registry.get_database_connection()
 
         Importer.get_importer(args.object).import_(args.filepath)
 
