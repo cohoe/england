@@ -73,7 +73,7 @@ class RecipeImporter(BaseImporter):
             RecipeImporter.delete(cocktail=c)
 
             db_obj = CocktailModel(**ObjectSerializer.serialize(c, 'dict'))
-            with pgconn.get_session() as session:
+            with BaseImporter.pgconn.get_session() as session:
                 session.add(db_obj)
                 logging.info("Successfully [re]created %s" % c.slug)
 
@@ -87,7 +87,7 @@ class RecipeImporter(BaseImporter):
     def delete(cocktail=None, delete_all=False):
 
         if cocktail:
-            with pgconn.get_session() as session:
+            with BaseImporter.pgconn.get_session() as session:
                 existing = session.query(CocktailModel).get(cocktail.slug)
 
                 if existing:
@@ -96,7 +96,7 @@ class RecipeImporter(BaseImporter):
             return
 
         if delete_all is True:
-            with pgconn.get_session() as session:
+            with BaseImporter.pgconn.get_session() as session:
                 logging.debug("Deleting all CocktailModel")
                 deleted = session.query(CocktailModel).delete()
                 logging.info("Deleted %s from %s" % (deleted, CocktailModel.__tablename__))
