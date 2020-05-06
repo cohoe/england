@@ -3,8 +3,9 @@ import sys
 import os
 import requests
 from barbados.connectors import PostgresqlConnector
-from barbados.services import Registry, logging
+from barbados.services import Registry
 from barbados.indexes import index_factory
+from barbados.services.logging import Log
 
 
 class Init:
@@ -36,7 +37,9 @@ class Init:
 
         index_factory.init()
         self._kibana_settings()
-        # @TODO kibana index patterns
+        # Sadly I cannot create index patterns easily via API. Requires a
+        # string-ified JSON blob of all fields which I am not prepared to
+        # build at this time.
 
     @staticmethod
     def _kibana_settings():
@@ -48,7 +51,7 @@ class Init:
 
         resp = requests.post('http://localhost:5601/api/kibana/settings', headers=headers, data=data)
         if resp.status_code == 200:
-            logging.info("Kibana set to dark mode.")
+            Log.info("Kibana set to dark mode.")
 
     @staticmethod
     def _setup_args():
