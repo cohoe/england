@@ -6,6 +6,7 @@ from barbados.connectors import PostgresqlConnector
 from barbados.services import Registry
 from barbados.indexes import index_factory
 from barbados.services.logging import Log
+from barbados.caches import CocktailScanCache, IngredientScanCache, IngredientTreeCache
 
 
 class Init:
@@ -40,6 +41,12 @@ class Init:
         # Sadly I cannot create index patterns easily via API. Requires a
         # string-ified JSON blob of all fields which I am not prepared to
         # build at this time.
+
+        # @TODO invalidate all?
+        CocktailScanCache.invalidate()
+        IngredientScanCache.invalidate()
+        IngredientTreeCache.invalidate()
+
 
     @staticmethod
     def _kibana_settings():
