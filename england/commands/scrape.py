@@ -1,6 +1,6 @@
 import argparse
 import sys
-from barbados.connectors import UpneatConnector
+from barbados.connectors import UpneatConnector, MixologyTechConnector
 from barbados.services import Registry
 from barbados.models import CocktailModel
 from barbados.serializers import ObjectSerializer
@@ -19,25 +19,12 @@ class Scrape:
         args = self._setup_args()
         self._validate_args(args)
 
-        pgconn = Registry.get_database_connection()
-        # c = UpneatConnector.scrape_recipe(args.source)
-        #
-        # with pgconn.get_session() as session:
-        #     db_obj = CocktailModel(**ObjectSerializer.serialize(c, 'dict'))
-        #     session.add(db_obj)
-        #
-        objects = UpneatConnector.get_recipes()
-        # with pgconn.get_session() as session:
-        #     for c in objects:
-        #         db_obj = CocktailModel(**ObjectSerializer.serialize(c, 'dict'))
-        #         session.add(db_obj)
-        #         indexer_factory.get_indexer(c).index(c)
-        #
-        # CocktailScanCache.invalidate()
+        # objects = UpneatConnector.get_recipes()
+        objects = MixologyTechConnector(database_path='/home/grant/Desktop/Data.sqlite').get_recipes()
         for c in objects:
             content = ruamel.yaml.round_trip_dump([ObjectSerializer.serialize(c, 'dict')])
             filename = "%s.yaml" % c.slug
-            write_file(path="../tortuga/dump/%s" % filename, contents=content)
+            write_file(path="../tortuga/dump/pdtapp/%s" % filename, contents=content)
 
 
     @staticmethod
