@@ -4,7 +4,7 @@ import england.util
 import os
 from barbados.models import CocktailModel, IngredientModel, MenuModel
 from barbados.factories import CocktailFactory, MenuFactory
-from barbados.services import Registry
+from barbados.services.registry import Registry
 from barbados.services.logging import Log
 from barbados.objects.ingredient import Ingredient
 from barbados.objects.ingredientkinds import IngredientKinds

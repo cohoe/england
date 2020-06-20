@@ -3,7 +3,7 @@ import sys
 import os
 import requests
 from barbados.connectors import PostgresqlConnector
-from barbados.services import Registry
+from barbados.services.registry import Registry
 from barbados.indexes import index_factory
 from barbados.services.logging import Log
 from barbados.caches import CocktailScanCache, IngredientScanCache, IngredientTreeCache, MenuScanCache

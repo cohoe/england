@@ -1,7 +1,7 @@
 import argparse
 import sys
 from barbados.connectors import UpneatConnector, MixologyTechConnector
-from barbados.services import Registry
+from barbados.services.registry import Registry
 from barbados.models import CocktailModel
 from barbados.serializers import ObjectSerializer
 from barbados.caches import CocktailScanCache
