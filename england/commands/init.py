@@ -6,7 +6,7 @@ from barbados.connectors import PostgresqlConnector
 from barbados.services import Registry
 from barbados.indexes import index_factory
 from barbados.services.logging import Log
-from barbados.caches import CocktailScanCache, IngredientScanCache, IngredientTreeCache
+from barbados.caches import CocktailScanCache, IngredientScanCache, IngredientTreeCache, MenuScanCache
 
 
 class Init:
@@ -46,6 +46,8 @@ class Init:
         CocktailScanCache.invalidate()
         IngredientScanCache.invalidate()
         IngredientTreeCache.invalidate()
+        MenuScanCache.invalidate()
+
 
 
     @staticmethod

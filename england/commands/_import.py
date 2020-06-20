@@ -7,15 +7,13 @@ from barbados.factories import CocktailFactory, MenuFactory
 from barbados.services import Registry
 from barbados.services.logging import Log
 from barbados.objects.ingredient import Ingredient
-from barbados.objects.menu import Menu
 from barbados.objects.ingredientkinds import IngredientKinds
 from barbados.text import Slug
 from barbados.serializers import ObjectSerializer
 from barbados.validators import ObjectValidator
-from barbados.exceptions import ValidationException
-from barbados.caches import IngredientTreeCache, CocktailScanCache
+from barbados.caches import IngredientTreeCache, CocktailScanCache, MenuScanCache
 from barbados.indexers import indexer_factory
-from barbados.indexes import index_factory, RecipeIndex, IngredientIndex
+from barbados.indexes import index_factory, RecipeIndex, IngredientIndex, MenuIndex
 
 
 class Importer:
@@ -171,9 +169,13 @@ class MenuImporter(BaseImporter):
             # Test for existing
             with self.pgconn.get_session() as session:
                 session.add(db_obj)
+                indexer_factory.get_indexer(m).index(m)
 
         # Validate
         self.validate()
+
+        # Clear Cache and Index
+        MenuScanCache.invalidate()
 
     def delete(self):
         Log.debug("Deleting old data from database")
@@ -181,7 +183,7 @@ class MenuImporter(BaseImporter):
             deleted = session.query(self.model).delete()
 
         Log.info("Deleted %s" % deleted)
-        # index_factory.rebuild(IngredientIndex)
+        index_factory.rebuild(MenuIndex)
 
     def validate(self):
         Log.info("Validating")
