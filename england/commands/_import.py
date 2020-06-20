@@ -2,11 +2,12 @@ import argparse
 import sys
 import england.util
 import os
-from barbados.models import CocktailModel, IngredientModel
-from barbados.factories import CocktailFactory
+from barbados.models import CocktailModel, IngredientModel, MenuModel
+from barbados.factories import CocktailFactory, MenuFactory
 from barbados.services import Registry
 from barbados.services.logging import Log
 from barbados.objects.ingredient import Ingredient
+from barbados.objects.menu import Menu
 from barbados.objects.ingredientkinds import IngredientKinds
 from barbados.text import Slug
 from barbados.serializers import ObjectSerializer
@@ -151,20 +152,48 @@ class IngredientImporter(BaseImporter):
         Log.info("Deleted %s" % deleted)
         index_factory.rebuild(IngredientIndex)
 
-    def validate(self):
-        Log.info("starting validation")
+
+class MenuImporter(BaseImporter):
+    kind = 'menus'
+    model = MenuModel
+
+    def import_(self, filepath):
+        data = MenuImporter._fetch_data_from_path(filepath)
+
+        # Delete old data
+        self.delete()
+
+        Log.info("Starting import")
+        for menu in data:
+            m = MenuFactory.raw_to_obj(menu)
+            db_obj = MenuModel(**ObjectSerializer.serialize(m, 'dict'))
+
+            # Test for existing
+            with self.pgconn.get_session() as session:
+                session.add(db_obj)
+
+        # Validate
+        self.validate()
+
+    def delete(self):
+        Log.debug("Deleting old data from database")
         with self.pgconn.get_session() as session:
-            ingredients = session.query(IngredientModel).all()
-        # ingredients = IngredientModel.query.all()
-            for ingredient in ingredients:
-                try:
-                    ingredient.validate()
-                except ValidationException as e:
-                    Log.error(e)
+            deleted = session.query(self.model).delete()
+
+        Log.info("Deleted %s" % deleted)
+        # index_factory.rebuild(IngredientIndex)
+
+    def validate(self):
+        Log.info("Validating")
+        with self.pgconn.get_session() as session:
+            objects = session.query(self.model).all()
+            for db_obj in objects:
+                ObjectValidator.validate(db_obj, session=session, fatal=False)
 
 
 Importer.register_importer(RecipeImporter)
 Importer.register_importer(IngredientImporter)
+Importer.register_importer(MenuImporter)
 
 
 class Import:

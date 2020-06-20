@@ -59,6 +59,8 @@ class Init:
         resp = requests.post('http://localhost:5601/api/kibana/settings', headers=headers, data=data)
         if resp.status_code == 200:
             Log.info("Kibana set to dark mode.")
+        else:
+            Log.error("Error setting dark mode: %s" % resp.text)
 
     @staticmethod
     def _setup_args():
