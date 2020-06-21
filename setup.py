@@ -22,6 +22,6 @@ setup(
         'python-editor',
         'PyYAML',
         'jinja2',
-        'ruamel'
+        'ruamel.yaml'
     ]
 )
