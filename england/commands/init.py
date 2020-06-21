@@ -19,9 +19,9 @@ class Init:
 
         try:
             # This syntax guarantees KeyError
-            db_username = os.environ['DATABASE_USERNAME']
-            db_password = os.environ['DATABASE_PASSWORD']
-            db_database = os.environ['DATABASE_NAME']
+            db_username = os.environ['AMARI_DATABASE_USERNAME']
+            db_password = os.environ['AMARI_DATABASE_PASSWORD']
+            db_database = os.environ['AMARI_DATABASE_NAME']
         except KeyError as e:
             print("Environment variable missing: %s" % e)
             exit(1)
@@ -58,7 +58,8 @@ class Init:
         }
         data = '{"changes":{"theme:darkMode":true}}'
 
-        resp = requests.post('http://localhost:5601/api/kibana/settings', headers=headers, data=data)
+        kibana_host = os.getenv('AMARI_KIBANA_HOST', default='localhost')
+        resp = requests.post("http://%s:5601/api/kibana/settings" % kibana_host, headers=headers, data=data)
         if resp.status_code == 200:
             Log.info("Kibana set to dark mode.")
         else:
