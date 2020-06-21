@@ -21,6 +21,7 @@ setup(
         'barbados',
         'python-editor',
         'PyYAML',
-        'jinja2'
+        'jinja2',
+        'ruamel'
     ]
 )
