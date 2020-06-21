@@ -19,6 +19,7 @@ class Init:
 
         try:
             # This syntax guarantees KeyError
+            db_host = os.environ['AMARI_DATABASE_HOST']
             db_username = os.environ['AMARI_DATABASE_USERNAME']
             db_password = os.environ['AMARI_DATABASE_PASSWORD']
             db_database = os.environ['AMARI_DATABASE_NAME']
@@ -26,11 +27,12 @@ class Init:
             print("Environment variable missing: %s" % e)
             exit(1)
 
-        conn = PostgresqlConnector(username=db_username, password=db_password, database=db_database)
+        conn = PostgresqlConnector(host=db_host, username=db_username,
+                                   password=db_password, database=db_database)
         conn.drop_all()
         conn.create_all()
 
-        Registry.set('/database/postgres/hostname', '127.0.0.1')
+        Registry.set('/database/postgres/hostname', db_host)
         Registry.set('/database/postgres/port', '5432')
         Registry.set('/database/postgres/username', db_username)
         Registry.set('/database/postgres/password', db_password)
@@ -47,8 +49,6 @@ class Init:
         IngredientScanCache.invalidate()
         IngredientTreeCache.invalidate()
         MenuScanCache.invalidate()
-
-
 
     @staticmethod
     def _kibana_settings():
