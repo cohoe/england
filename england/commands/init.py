@@ -3,9 +3,9 @@ import sys
 import os
 import requests
 from barbados.connectors import PostgresqlConnector
-from barbados.services.registry import Registry
+from barbados.services.registry import RegistryService
 from barbados.indexes import index_factory
-from barbados.services.logging import Log
+from barbados.services.logging import LogService
 from barbados.caches import CocktailScanCache, IngredientScanCache, IngredientTreeCache, MenuScanCache
 
 
@@ -32,11 +32,11 @@ class Init:
         conn.drop_all()
         conn.create_all()
 
-        Registry.set('/database/postgres/hostname', db_host)
-        Registry.set('/database/postgres/port', '5432')
-        Registry.set('/database/postgres/username', db_username)
-        Registry.set('/database/postgres/password', db_password)
-        Registry.set('/database/postgres/database', db_database)
+        RegistryService.set('/database/postgres/hostname', db_host)
+        RegistryService.set('/database/postgres/port', '5432')
+        RegistryService.set('/database/postgres/username', db_username)
+        RegistryService.set('/database/postgres/password', db_password)
+        RegistryService.set('/database/postgres/database', db_database)
 
         index_factory.init()
         self._kibana_settings()
@@ -61,9 +61,9 @@ class Init:
         kibana_host = os.getenv('AMARI_KIBANA_HOST', default='localhost')
         resp = requests.post("http://%s:5601/api/kibana/settings" % kibana_host, headers=headers, data=data)
         if resp.status_code == 200:
-            Log.info("Kibana set to dark mode.")
+            LogService.info("Kibana set to dark mode.")
         else:
-            Log.error("Error setting dark mode: %s" % resp.text)
+            LogService.error("Error setting dark mode: %s" % resp.text)
 
     @staticmethod
     def _setup_args():
