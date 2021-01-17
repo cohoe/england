@@ -3,7 +3,7 @@ import sys
 import england.util
 import os
 from barbados.models import CocktailModel, IngredientModel, MenuModel
-from barbados.factories import CocktailFactory, MenuFactory
+from barbados.factories import CocktailFactory, DrinkListFactory
 from barbados.services.registry import RegistryService
 from barbados.services.logging import LogService
 from barbados.objects.ingredient import Ingredient
@@ -13,7 +13,7 @@ from barbados.serializers import ObjectSerializer
 from barbados.validators import ObjectValidator
 from barbados.caches import IngredientTreeCache, CocktailScanCache, MenuScanCache
 from barbados.indexers import indexer_factory
-from barbados.indexes import index_factory, RecipeIndex, IngredientIndex, MenuIndex
+from barbados.indexes import index_factory, RecipeIndex, IngredientIndex, DrinkListIndex
 
 
 class Importer:
@@ -163,7 +163,7 @@ class MenuImporter(BaseImporter):
 
         LogService.info("Starting import")
         for menu in data:
-            m = MenuFactory.raw_to_obj(menu)
+            m = DrinkListFactory.raw_to_obj(menu)
             db_obj = MenuModel(**ObjectSerializer.serialize(m, 'dict'))
 
             # Test for existing
@@ -183,7 +183,7 @@ class MenuImporter(BaseImporter):
             deleted = session.query(self.model).delete()
 
         LogService.info("Deleted %s" % deleted)
-        index_factory.rebuild(MenuIndex)
+        index_factory.rebuild(DrinkListIndex)
 
     def validate(self):
         LogService.info("Validating")
